@@ -31,7 +31,15 @@ class MainActivity : ComponentActivity() {
     private lateinit var player: Player
 
     private var introContentUri: Uri? = null
+        set(value) {
+            field = value
+            introFileName = if (value != null) getFileNameFromUri(value) else "null"
+        }
     private var loopContentUri: Uri? = null
+        set(value) {
+            field = value
+            loopFileName = if (value != null) getFileNameFromUri(value) else "null"
+        }
 
     private var introFileName by mutableStateOf("empty")
     private var loopFileName by mutableStateOf("empty")
@@ -54,10 +62,10 @@ class MainActivity : ComponentActivity() {
             val filename = if (uri != null) getFileNameFromUri(uri) else "null"
             if (requestIntro) {
                 introContentUri = uri
-                introFileName = filename
+//                introFileName = filename
             } else {
                 loopContentUri = uri
-                loopFileName = filename
+//                loopFileName = filename
             }
 
             Toast.makeText(this@MainActivity, filename, Toast.LENGTH_LONG).show()
@@ -93,7 +101,7 @@ class MainActivity : ComponentActivity() {
 
         player = ExoPlayer.Builder(this).build()
         setOffloadPlayback()
-
+        // TODO: save the whole file to app data folder
     }
 
     private fun getFileNameFromUri(contentUri: Uri): String {
