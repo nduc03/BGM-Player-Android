@@ -32,7 +32,6 @@ class MainActivity : ComponentActivity() {
     private var introFileName by mutableStateOf("empty")
     private var loopFileName by mutableStateOf("empty")
 
-    private var stopCalled = false
     private var isCurrentModeBgm = false
     private val bgmNextTrackListener = object : Player.Listener {
         override fun onMediaItemTransition(
@@ -79,8 +78,7 @@ class MainActivity : ComponentActivity() {
                         Text(text = "Loop file name: $loopFileName")
                         ButtonWithText("Play") { onClickPlay() }
                         ButtonWithText("Pause") { pause() }
-                        ButtonWithText("Stop") { stop() }
-                        ButtonWithText("Clear") { clearPlaylist() }
+                        ButtonWithText("Stop and Clear playlist") { stopAndClearPlaylist() }
                     }
                 }
             }
@@ -101,22 +99,27 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun onClickPlay() {
+        if (player.isPlaying) {
+            player.play()
+            return
+        }
+
         if (isEmptyFilename(introFileName) && isEmptyFilename(loopFileName)) {
             Toast.makeText(this, "No file to play!", Toast.LENGTH_LONG).show()
             return
         }
         if (!isEmptyFilename(introFileName) && !isEmptyFilename(loopFileName)) {
-            playBgm(BgmFilesManager.getIntroUri(this)!!, BgmFilesManager.getLoopUri(this)!!)
+            playNewBgm(BgmFilesManager.getIntroUri(this)!!, BgmFilesManager.getLoopUri(this)!!)
             return
         }
         if (!isEmptyFilename(introFileName)) {
-            playLoop(BgmFilesManager.getIntroUri(this)!!)
+            playNewLoop(BgmFilesManager.getIntroUri(this)!!)
             return
         }
-        playLoop(BgmFilesManager.getLoopUri(this)!!)
+        playNewLoop(BgmFilesManager.getLoopUri(this)!!)
     }
 
-    private fun playBgm(introUri: Uri, loopUri: Uri) {
+    private fun playNewBgm(introUri: Uri, loopUri: Uri) {
         val intro = MediaItem.fromUri(introUri)
         val loop = MediaItem.fromUri(loopUri)
         player.addMediaItem(0, intro)
@@ -125,32 +128,22 @@ class MainActivity : ComponentActivity() {
         player.prepare()
         player.play()
         isCurrentModeBgm = true
-        stopCalled = false
     }
 
-    private fun playLoop(loopUri: Uri) {
+    private fun playNewLoop(loopUri: Uri) {
         val loop = MediaItem.fromUri(loopUri)
         player.addMediaItem(loop)
         player.repeatMode = Player.REPEAT_MODE_ONE
         player.prepare()
         player.play()
-        stopCalled = false
     }
 
     private fun pause() {
         if (player.isPlaying) player.pause()
     }
 
-    private fun stop() {
-        if (player.isPlaying) player.stop()
-        stopCalled = true
-    }
-
-    private fun clearPlaylist() {
-        if (!stopCalled) {
-            stop()
-            stopCalled = false
-        }
+    private fun stopAndClearPlaylist() {
+        player.stop()
         player.clearMediaItems()
         if (isCurrentModeBgm) player.removeListener(bgmNextTrackListener)
         player.repeatMode = Player.REPEAT_MODE_OFF
