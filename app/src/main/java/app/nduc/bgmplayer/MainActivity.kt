@@ -2,7 +2,6 @@ package app.nduc.bgmplayer
 
 import android.net.Uri
 import android.os.Bundle
-import android.provider.OpenableColumns
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -30,16 +29,12 @@ import app.nduc.bgmplayer.ui.theme.BGMPlayerTheme
 class MainActivity : ComponentActivity() {
     private lateinit var player: Player
 
-    private var introContentUri: Uri? = null
-    private var loopContentUri: Uri? = null
-
     private var introFileName by mutableStateOf("empty")
     private var loopFileName by mutableStateOf("empty")
 
     private var stopCalled = false
-
     private var isCurrentModeBgm = false
-    private val bgmListener = object : Player.Listener {
+    private val bgmNextTrackListener = object : Player.Listener {
         override fun onMediaItemTransition(
             mediaItem: MediaItem?,
             @Player.MediaItemTransitionReason reason: Int,
@@ -51,16 +46,16 @@ class MainActivity : ComponentActivity() {
     private var requestIntro = true
     private val getContent =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-            val filename = if (uri != null) getFileNameFromUri(uri) else "null"
+            if (uri == null) return@registerForActivityResult
             if (requestIntro) {
-                introContentUri = uri
-                introFileName = filename
-            } else {
-                loopContentUri = uri
-                loopFileName = filename
-            }
+                BgmFilesManager.createNewIntro(this, uri)
+                introFileName = BgmFilesManager.introDisplayName
 
-            Toast.makeText(this@MainActivity, filename, Toast.LENGTH_LONG).show()
+            } else {
+                BgmFilesManager.createNewLoop(this, uri)
+                loopFileName = BgmFilesManager.loopDisplayName
+            }
+            BgmFilesManager.saveDisplayName(this)
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -91,37 +86,34 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        BgmFilesManager.loadDisplayName(this)
+        if (BgmFilesManager.checkIntro(this))
+            introFileName = BgmFilesManager.introDisplayName
+        if (BgmFilesManager.checkLoop(this))
+            loopFileName = BgmFilesManager.loopDisplayName
+
         player = ExoPlayer.Builder(this).build()
         setOffloadPlayback()
-
     }
 
-    private fun getFileNameFromUri(contentUri: Uri): String {
-        var res = ""
-        contentUri.let { returnUri ->
-            contentResolver.query(returnUri, null, null, null, null)
-        }?.use { cursor ->
-            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-            cursor.moveToFirst()
-            res = cursor.getString(nameIndex)
-        }
-        return res
+    private fun isEmptyFilename(filename: String): Boolean {
+        return filename == "" || filename == "empty"
     }
 
     private fun onClickPlay() {
-        if (introContentUri == null && loopContentUri == null) {
+        if (isEmptyFilename(introFileName) && isEmptyFilename(loopFileName)) {
             Toast.makeText(this, "No file to play!", Toast.LENGTH_LONG).show()
             return
         }
-        if (introContentUri != null && loopContentUri != null) {
-            playBgm(introContentUri!!, loopContentUri!!)
+        if (!isEmptyFilename(introFileName) && !isEmptyFilename(loopFileName)) {
+            playBgm(BgmFilesManager.getIntroUri(this)!!, BgmFilesManager.getLoopUri(this)!!)
             return
         }
-        if (introContentUri != null) {
-            playLoop(introContentUri!!)
+        if (!isEmptyFilename(introFileName)) {
+            playLoop(BgmFilesManager.getIntroUri(this)!!)
             return
         }
-        playLoop(loopContentUri!!)
+        playLoop(BgmFilesManager.getLoopUri(this)!!)
     }
 
     private fun playBgm(introUri: Uri, loopUri: Uri) {
@@ -129,10 +121,11 @@ class MainActivity : ComponentActivity() {
         val loop = MediaItem.fromUri(loopUri)
         player.addMediaItem(0, intro)
         player.addMediaItem(1, loop)
-        player.addListener(bgmListener)
+        player.addListener(bgmNextTrackListener)
         player.prepare()
         player.play()
         isCurrentModeBgm = true
+        stopCalled = false
     }
 
     private fun playLoop(loopUri: Uri) {
@@ -141,6 +134,7 @@ class MainActivity : ComponentActivity() {
         player.repeatMode = Player.REPEAT_MODE_ONE
         player.prepare()
         player.play()
+        stopCalled = false
     }
 
     private fun pause() {
@@ -158,7 +152,7 @@ class MainActivity : ComponentActivity() {
             stopCalled = false
         }
         player.clearMediaItems()
-        if (isCurrentModeBgm) player.removeListener(bgmListener)
+        if (isCurrentModeBgm) player.removeListener(bgmNextTrackListener)
         player.repeatMode = Player.REPEAT_MODE_OFF
         isCurrentModeBgm = false
     }
