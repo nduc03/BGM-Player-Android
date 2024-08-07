@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">BGM Player</string>
+    <string name="notify_no_file_selected">No file to play!</string>
 </resources>

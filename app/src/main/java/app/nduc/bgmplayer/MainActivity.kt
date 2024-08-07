@@ -31,8 +31,8 @@ class MainActivity : ComponentActivity() {
     private lateinit var player: Player
     private lateinit var controllerFuture: ListenableFuture<MediaController>
 
-    private var introFileName by mutableStateOf("empty")
-    private var loopFileName by mutableStateOf("empty")
+    private var introDisplayName by mutableStateOf(GlobalConst.EMPTY_DISPLAY_NAME)
+    private var loopDisplayName by mutableStateOf(GlobalConst.EMPTY_DISPLAY_NAME)
 
     private var isCurrentModeBgm = false
     private val bgmNextTrackListener = object : Player.Listener {
@@ -50,11 +50,11 @@ class MainActivity : ComponentActivity() {
             if (uri == null) return@registerForActivityResult
             if (requestIntro) {
                 BgmFilesManager.createNewIntro(this, uri)
-                introFileName = BgmFilesManager.introDisplayName
+                introDisplayName = BgmFilesManager.introFileName
 
             } else {
                 BgmFilesManager.createNewLoop(this, uri)
-                loopFileName = BgmFilesManager.loopDisplayName
+                loopDisplayName = BgmFilesManager.loopFileName
             }
             BgmFilesManager.saveDisplayName(this)
         }
@@ -73,11 +73,11 @@ class MainActivity : ComponentActivity() {
                         ButtonWithText("Set intro file") {
                             openWavAudioFile(true)
                         }
-                        Text(text = "Intro file name: $introFileName")
+                        Text(text = "Intro file name: $introDisplayName")
                         ButtonWithText("Set loop file") {
                             openWavAudioFile(false)
                         }
-                        Text(text = "Loop file name: $loopFileName")
+                        Text(text = "Loop file name: $loopDisplayName")
                         ButtonWithText("Play") { onClickPlay() }
                         ButtonWithText("Pause") { pause() }
                         ButtonWithText("Stop and Clear playlist") { stopAndClearPlaylist() }
@@ -88,9 +88,9 @@ class MainActivity : ComponentActivity() {
 
         BgmFilesManager.loadDisplayName(this)
         if (BgmFilesManager.checkIntro(this))
-            introFileName = BgmFilesManager.introDisplayName
+            introDisplayName = BgmFilesManager.introFileName
         if (BgmFilesManager.checkLoop(this))
-            loopFileName = BgmFilesManager.loopDisplayName
+            loopDisplayName = BgmFilesManager.loopFileName
     }
 
     override fun onStart() {
@@ -111,7 +111,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun isEmptyFilename(filename: String): Boolean {
-        return filename == "" || filename == "empty"
+        return filename == "" || filename == GlobalConst.EMPTY_DISPLAY_NAME
     }
 
     private fun onClickPlay() {
@@ -120,15 +120,15 @@ class MainActivity : ComponentActivity() {
             return
         }
 
-        if (isEmptyFilename(introFileName) && isEmptyFilename(loopFileName)) {
-            Toast.makeText(this, "No file to play!", Toast.LENGTH_LONG).show()
+        if (isEmptyFilename(introDisplayName) && isEmptyFilename(loopDisplayName)) {
+            Toast.makeText(this, getString(R.string.notify_no_file_selected), Toast.LENGTH_LONG).show()
             return
         }
-        if (!isEmptyFilename(introFileName) && !isEmptyFilename(loopFileName)) {
+        if (!isEmptyFilename(introDisplayName) && !isEmptyFilename(loopDisplayName)) {
             playNewBgm(BgmFilesManager.getIntroUri(this)!!, BgmFilesManager.getLoopUri(this)!!)
             return
         }
-        if (!isEmptyFilename(introFileName)) {
+        if (!isEmptyFilename(introDisplayName)) {
             playNewLoop(BgmFilesManager.getIntroUri(this)!!)
             return
         }

@@ -1,5 +1,5 @@
 package app.nduc.bgmplayer
 
 object GlobalConst {
-    const val emptyDisplayName = "empty"
+    const val EMPTY_DISPLAY_NAME = "empty"
 }

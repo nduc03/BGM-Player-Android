@@ -10,15 +10,15 @@ object Utils {
     fun getFileNameFromContentUri(context: Context, contentUri: Uri): String {
         var res = "empty"
         try {
-            contentUri.let { returnUri ->
-                context.contentResolver.query(returnUri, null, null, null, null)
+            contentUri.let {
+                context.contentResolver.query(it, null, null, null, null)
             }?.use { cursor ->
                 val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                 cursor.moveToFirst()
                 res = cursor.getString(nameIndex)
             }
         } catch (_: SecurityException) {
-            // notify uri inaccessible
+            // TODO notify uri inaccessible
         }
         return res
     }

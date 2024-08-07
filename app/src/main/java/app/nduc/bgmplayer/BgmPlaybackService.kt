@@ -8,7 +8,6 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 
 class BgmPlaybackService : MediaSessionService() {
-
     private var mediaSession: MediaSession? = null
 
     private lateinit var player: ExoPlayer
