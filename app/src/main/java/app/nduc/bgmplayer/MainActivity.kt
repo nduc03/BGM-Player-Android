@@ -1,5 +1,6 @@
 package app.nduc.bgmplayer
 
+import android.content.ComponentName
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
@@ -7,7 +8,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -21,13 +21,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import androidx.media3.common.TrackSelectionParameters
-import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
 import app.nduc.bgmplayer.ui.theme.BGMPlayerTheme
+import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.util.concurrent.MoreExecutors
 
 class MainActivity : ComponentActivity() {
     private lateinit var player: Player
+    private lateinit var controllerFuture: ListenableFuture<MediaController>
 
     private var introFileName by mutableStateOf("empty")
     private var loopFileName by mutableStateOf("empty")
@@ -89,9 +91,23 @@ class MainActivity : ComponentActivity() {
             introFileName = BgmFilesManager.introDisplayName
         if (BgmFilesManager.checkLoop(this))
             loopFileName = BgmFilesManager.loopDisplayName
+    }
 
-        player = ExoPlayer.Builder(this).build()
-        setOffloadPlayback()
+    override fun onStart() {
+        super.onStart()
+        val sessionToken = SessionToken(this, ComponentName(this, BgmPlaybackService::class.java))
+        controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
+        controllerFuture.addListener(
+            {
+                player = controllerFuture.get()
+            },
+            MoreExecutors.directExecutor()
+        )
+    }
+
+    override fun onStop() {
+        MediaController.releaseFuture(controllerFuture)
+        super.onStop()
     }
 
     private fun isEmptyFilename(filename: String): Boolean {
@@ -153,23 +169,6 @@ class MainActivity : ComponentActivity() {
     private fun openWavAudioFile(isRequestIntro: Boolean) {
         requestIntro = isRequestIntro
         getContent.launch("audio/x-wav")
-    }
-
-    /**
-     * For battery saving
-     */
-    @OptIn(UnstableApi::class)
-    private fun setOffloadPlayback() {
-        val audioOffloadPreferences =
-            TrackSelectionParameters.AudioOffloadPreferences.Builder()
-                .setAudioOffloadMode(TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED)
-                .setIsGaplessSupportRequired(true)
-                .build()
-        player.trackSelectionParameters = player.trackSelectionParameters
-            .buildUpon()
-            .setAudioOffloadPreferences(audioOffloadPreferences)
-            .build()
-
     }
 }
 
