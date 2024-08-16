@@ -40,6 +40,7 @@ class MainActivity : ComponentActivity() {
             mediaItem: MediaItem?,
             @Player.MediaItemTransitionReason reason: Int,
         ) {
+            // TODO check that only repeat if index is 1
             player.repeatMode = Player.REPEAT_MODE_ONE
         }
     }
@@ -121,7 +122,8 @@ class MainActivity : ComponentActivity() {
         }
 
         if (isEmptyFilename(introDisplayName) && isEmptyFilename(loopDisplayName)) {
-            Toast.makeText(this, getString(R.string.notify_no_file_selected), Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.notify_no_file_selected), Toast.LENGTH_LONG)
+                .show()
             return
         }
         if (!isEmptyFilename(introDisplayName) && !isEmptyFilename(loopDisplayName)) {
